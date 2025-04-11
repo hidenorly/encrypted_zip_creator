@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:path/path.dart' as p;
+import 'ziparchiver.dart';
 
 void main() {
   runApp(const MyApp());
@@ -42,117 +43,6 @@ class ZipEncryptor extends StatefulWidget {
 }
 
 
-
-class IZipArchiver {
-  void open(String zipName, [String? password]){}
-  void addFile(String path, String targetPath) async{}
-  void rename(String oldName, String newName) {}
-  void renameFolder(int zipPointer, String oldFolder, String newFolder) {}
-  void remove(String fileName) {}
-  void close() {}
-}
-
-class ZipArchiverExtCmd extends IZipArchiver {
-  Future<void> _printProcessOutput(Process process) async {
-    await for (var line in process.stdout.transform(SystemEncoding().decoder)) {
-      print("stdout: $line");
-    }
-    await for (var line in process.stderr.transform(SystemEncoding().decoder)) {
-      print("stderr: $line");
-    }
-
-    final exitCode = await process.exitCode;
-    print("Process exited with code: $exitCode");
-  }
-
-  late String zipName;
-  String? password;
-  bool _isOpen = false;
-
-  ZipArchiverExtCmd();
-
-  void open(String zipName, [String? password]) {
-    _isOpen = true;
-    this.zipName = zipName;
-    this.password = password;
-  }
-
-  void addFile(String path, String targetPath) async {
-    if (!_isOpen) throw Exception("ZIP file is not open.");
-
-    print("addFile:${path} to ${targetPath}");
-
-    final file = File(path);
-    final dir = Directory(path);
-    final isFile = await file.exists();
-    final parentDir = isFile ? file.parent.path : dir.parent.path;
-    final zipTarget = isFile ? file.uri.pathSegments.last : p.basename(dir.path);
-
-    List<String> args;
-    if( password?.isNotEmpty == true ){
-      args = isFile ? ['-P', password!, zipName, zipTarget] : ['-P', password!, zipName, '-r', zipTarget];
-    } else {
-      args = ['-r', zipName, zipTarget];
-    }
-    
-    print("Running command: zip ${args.join(' ')}");
-
-    final process = await Process.start('zip', args, workingDirectory: parentDir, runInShell: true);
-    await _printProcessOutput(process);
-
-  }
-
-  void rename(String oldName, String newName) {
-    throw Exception("Not implemented.");
-  }
-
-  void renameFolder(int zipPointer, String oldFolder, String newFolder) {
-    throw Exception("Not implemented.");
-  }
-
-  void remove(String fileName) {
-    throw Exception("Not implemented.");
-  }
-
-  void close() {
-    _isOpen = false;
-  }
-}
-
-
-class ZipArchiver extends IZipArchiver {
-  late IZipArchiver impl;
-
-  ZipArchiver(){
-    impl = new ZipArchiverExtCmd();
-  }
-
-  void open(String zipName, [String? password]){
-    impl.open(zipName, password);
-  }
-
-  void addFile(String path, String targetPath) async{
-    impl.addFile(path, targetPath);
-  }
-
-  void rename(String oldName, String newName) {
-    impl.rename(oldName, newName);
-  }
-
-  void renameFolder(int zipPointer, String oldFolder, String newFolder) {
-    impl.renameFolder(zipPointer, oldFolder, newFolder);
-  }
-
-  void remove(String fileName) {
-    impl.remove(fileName);
-  }
-
-  void close() {
-    impl.close();
-  }
-}
-
-
 class _ZipEncryptorState extends State<ZipEncryptor> {
   String password = "";
   bool isDragging = false;
@@ -170,11 +60,16 @@ class _ZipEncryptorState extends State<ZipEncryptor> {
         ? file.uri.pathSegments.last.split('.').first
         : p.basename(dir.path);
     final zipName = "$parentDir/$baseName.zip";
+    /*
     final zipTarget = isFile ? file.uri.pathSegments.last : p.basename(dir.path);
 
     final zip = ZipArchiver();
     zip.open(zipName, password=="" ? null : password);
     zip.addFile(path, zipTarget);
+    zip.close();
+    */
+    List<String> targetFiles = await ZipArchiverHelper.getFileList([path]);
+    ZipArchiverHelper.createZipFile(zipName, targetFiles, password=="" ? null : password);
 
     /*
     List<String> args;
