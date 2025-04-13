@@ -119,7 +119,7 @@ class LibZipArchiver extends IZipArchiver {
       return DynamicLibrary.open(
         Platform.isMacOS ? "/opt/homebrew/lib/libzip.dylib" :
         Platform.isLinux ? "libzip.so" :
-        "libzip.dll",
+        "zip.dll",
       );
     } catch (e) {
       print('Failed to open libzip: $e');
