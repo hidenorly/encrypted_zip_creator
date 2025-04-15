@@ -97,7 +97,29 @@ class _ZipEncryptorState extends State<ZipEncryptor> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Encrypted Zip Creator')),
+      appBar: AppBar(
+        title: const Text('Encrypted Zip Creator'),
+        actions: <Widget>[
+          PopupMenuButton<String>(
+            onSelected: (String value) {
+              if (value == 'about') {
+                showAboutDialog(
+                  context: context,
+                  applicationName: 'Encrypted Zip Creator',
+                  applicationVersion: '1.0.0',
+                  applicationLegalese: 'Copyright (C) 2025 hidenorly',
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'about',
+                child: Text('About'),
+              ),
+            ],
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
